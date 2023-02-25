@@ -1,5 +1,5 @@
-from pydantic import BaseModel, validator, ValidationError, StrictStr
-from typing import List
+from pydantic import BaseModel, validator, ValidationError, StrictStr, Field, StrictInt
+from typing import List, Optional, Any
 
 
 class ConversationInput(BaseModel):
@@ -49,3 +49,25 @@ class ConversationSerializer(BaseModel):
             if instance is None:
                 return None
             return cls(**cls.deconstruct_single_instance(instance))
+
+
+class PaginationParameters(BaseModel):
+    class Meta:
+        default_size = 10
+    page_size: Optional[int] = Field(default=Meta.default_size)
+    page: Optional[int] = Field(default=1)
+
+    def to_query(self):
+        result: dict = self.dict()
+        result['limit'] = result.pop('page_size')
+        result['offset'] = result.pop('page') * result['limit']
+        return result
+
+
+class PaginatorBase(BaseModel):
+    count: StrictInt
+    results: Any
+
+
+class PaginatorConversation(PaginatorBase):
+    results: List[ConversationSerializer]

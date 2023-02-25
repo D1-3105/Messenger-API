@@ -88,9 +88,9 @@ class TestConversationCreation(unittest.IsolatedAsyncioTestCase):
             '/conversation/list/',
             headers={'Authorization': f'Bearer {self.host_jwt}'},
         )
-        self.assertIsInstance(response.json(), list)
-        self.assertTrue(len(response.json()) > 0)
-        self.assertEqual(response.json()[0].get('id'), conversation.id)
+        results = response.json().get('results', [])
+        self.assertTrue(len(results) > 0)
+        self.assertEqual(results[0].get('id'), conversation.id)
         self.addAsyncCleanup(
             self.delete_conversation,
             conversation.id
