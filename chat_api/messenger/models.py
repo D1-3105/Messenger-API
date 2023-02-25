@@ -1,14 +1,15 @@
 # sqlalchemy
 from sqlalchemy import Column, Integer, String, Boolean, UniqueConstraint, ForeignKey, DateTime
-from sqlalchemy import select, or_
+from sqlalchemy import select
 from sqlalchemy.orm import relationship
+from shortcuts.orm import exec_statement
 # db
 from chat_api.conf import Base
 import typing
 from datetime import datetime
 
 if typing.TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
+    pass
 
 
 class ConversationThrough(Base):
@@ -63,8 +64,12 @@ class ConversationModel(Base):
     last_updated = Column(DateTime, default=datetime.now())
 
     @classmethod
-    async def query_conversation_by_user(cls, async_ses: 'AsyncSession', user_id):
+    @exec_statement
+    def query_conversation_by_user(
+            cls,
+            user_id
+    ):
         stmt = select(cls)\
             .join(cls.participants)\
             .filter_by(user_id=user_id).distinct()
-        return await async_ses.scalars(stmt)
+        return stmt

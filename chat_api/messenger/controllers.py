@@ -1,15 +1,13 @@
 # local staff
-from .serializers import ConversationInput, ConversationSerializer
+from .serializers import ConversationInput, ConversationSerializer, PaginationParameters, PaginatorConversation
 from .utils import authenticate
 # fastapi staff
-from fastapi import Request, Depends
+from fastapi import Depends
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 # conf
 from chat_api.conf.db import get_async_ses
 from chat_api.conf import app
-# shortcuts
-from shortcuts.encryption.encryption import JWT, JWTException, DecodeError
 # models staff
 from .models import ConversationModel, ConversationThrough
 # python staff
@@ -109,14 +107,20 @@ async def conversation_creation(
 
 @app.get(
     path='/conversation/list/',
-    response_model=List[ConversationSerializer]
+    response_model=PaginatorConversation
 )
 async def conversation_list(
+        pag_params: PaginationParameters = Depends(PaginationParameters),
         user_data: dict = Depends(authenticate),
-        async_ses=Depends(get_async_ses)
+        async_ses=Depends(get_async_ses),
 ):
     async_ses: 'AsyncSession'
-    conversations = await ConversationModel.query_conversation_by_user(async_ses, user_data.get('id'))
+    ses_executor = await ConversationModel.query_conversation_by_user(user_data.get('id'))
+    conversations = await ses_executor.a_perform_selection(async_ses, **pag_params.to_query())
     conversations: List[ConversationModel]
-    return ConversationSerializer.from_orm(instances=conversations, many=True)
+    count = await ses_executor.aget_count(async_ses)
+    return PaginatorConversation(
+        count=count,
+        results=ConversationSerializer.from_orm(instances=conversations, many=True)
+    )
 
